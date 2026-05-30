@@ -121,6 +121,13 @@ export default function RegisterPage() {
           : 'Account created and stored in Supabase successfully.',
       );
       toast.success(successMessage, { id: toastId });
+      if (data.emailDelivery?.status === 'sent') {
+        toast.success('Welcome email sent.');
+      } else if (data.emailDelivery?.status === 'skipped') {
+        toast('Account created. Welcome email skipped because Resend is not configured.');
+      } else if (data.emailDelivery?.status === 'failed') {
+        toast.error(`Account created, but welcome email failed: ${data.emailDelivery.reason}`);
+      }
       setFullName('');
       setEmail('');
       setPhone('');

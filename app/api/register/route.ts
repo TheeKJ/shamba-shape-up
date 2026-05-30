@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { sendWelcomeEmail } from '@/lib/email';
+
 const USER_ROLES = ['investor', 'farmer', 'worker', 'admin'] as const;
 
 type UserRole = (typeof USER_ROLES)[number];
@@ -146,11 +148,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const emailDelivery = await sendWelcomeEmail({
+      to: email,
+      fullName,
+      role,
+      county: county || null,
+      requiresEmailConfirmation: !authData?.session,
+    });
+
     const response = NextResponse.json(
       {
         user: profileData?.[0] || profileData,
         session: authData?.session || null,
         requiresEmailConfirmation: !authData?.session,
+        emailDelivery,
       },
       { status: 201 },
     );
