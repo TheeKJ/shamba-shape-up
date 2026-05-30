@@ -1064,8 +1064,7 @@ export default function ShambaPlatform() {
           </div>
         </div>
       </header>
-
-      {/* 2. DYNAMIC BROADCAST WARNING */}
+{/* 
       <div className="bg-[#F5F2EF] border-b border-[#1B3022]/10 py-3.5 px-4 text-center">
         <p className="text-[11px] text-[#1B3022]/80 uppercase tracking-widest font-semibold flex items-center justify-center gap-1.5">
           <AlertTriangle className="h-3.5 w-3.5 text-[#D97757]" />
@@ -1076,14 +1075,14 @@ export default function ShambaPlatform() {
           </span>
         </p>
       </div>
-
+*/}
       <main className="max-w-7xl mx-auto px-6 py-10">
         {/* ========================================== */}
         {/* PART A: THE INVESTOR DASHBOARD PERSPECTIVE */}
         {/* ========================================== */}
         {currentActiveRole === "investor" && (
           <div className="space-y-8">
-            {/* Visual Header / Value Prop Hero */}
+            {/* Visual Header / Value Prop Hero 
             <div className="bg-[#1B3022] text-[#FDFCFB] rounded-none p-8 md:p-10 relative overflow-hidden border border-[#1B3022]/10">
               <div className="relative z-10 max-w-2xl">
                 <span className="bg-[#D97757]/10 text-[#D97757] text-[9px] font-bold tracking-widest px-2.5 py-1 rounded-none uppercase border border-[#D97757]/30 font-mono">
@@ -1113,11 +1112,11 @@ export default function ShambaPlatform() {
                 </div>
               </div>
 
-              {/* Decorative graphic backdrop */}
+              {/* Deco  rative graphic backdrop 
               <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-5 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-400 via-emerald-800 to-emerald-950 pointer-events-none" />
             </div>
 
-            {/* Platform Stats Row */}
+            {/* Platform Stats Row *
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="bg-white p-6 rounded-none border border-[#1B3022]/10 shadow-sm transition hover:shadow-md">
                 <p className="text-[10px] font-bold text-[#D97757] uppercase tracking-[0.2em]">
@@ -1169,7 +1168,7 @@ export default function ShambaPlatform() {
                 </p>
               </div>
             </div>
-
+*/}
             {/* BENTO LAYOUT MAIN AREA */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* LEFT & CENTER SUB-GRID: Farm Browsing and AI Matching */}
