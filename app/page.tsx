@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -17,11 +18,8 @@ import {
   Search,
   Sparkles,
   AlertTriangle,
-  Check,
-  DollarSign,
   Clock,
   ArrowRight,
-  Filter,
   RefreshCw,
   Bell,
   CheckSquare,
@@ -31,17 +29,38 @@ import {
   Info
 } from 'lucide-react';
 
-import { Farm, FarmUpdate, Investment, Chama, WorkerReport, CreditScoreProfile, Notification, 
+import { Farm, FarmUpdate, Investment, Chama, WorkerReport, Notification,
   ActivityLog } from '@/types';
 import {
   INITIAL_FARMS,
   INITIAL_CHAMAS,
   INITIAL_REPORTS,
-  INITIAL_CREDIT_SCORES,
   INITIAL_NOTIFICATIONS,
-  INITIAL_ACTIVITY_LOGS,
-  INITIAL_STATS
+  INITIAL_ACTIVITY_LOGS
 } from '@/lib/data';
+
+type AIMatchRecommendation = {
+  farmId: string;
+  suitabilityScore: number;
+  allocationAmount: number;
+  reason: string;
+};
+
+type AIMatchData = {
+  matchSummary: string;
+  recommendations: AIMatchRecommendation[];
+  riskReview: string;
+  isSimulated?: boolean;
+};
+
+type AIAnomalyData = {
+  anomalyDetected: boolean;
+  riskScore: number;
+  findings?: string[];
+  riskExplanation: string;
+  recommendedAction: 'none' | 'suspend' | 'schedule_inspection' | 'flag_updates';
+  isSimulated?: boolean;
+};
 
 let idCounter = 1;
 
@@ -79,7 +98,7 @@ export default function ShambaPlatform() {
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [logs, setLogs] = React.useState<ActivityLog[]>([]);
   const [walletBalance, setWalletBalance] = React.useState<number>(350000); // KES Currency
-  const [investorScore, setInvestorScore] = React.useState<number>(88);
+  const investorScore = 88;
   const [investments, setInvestments] = React.useState<Investment[]>([
     {
       id: 'inv-seed-1',
@@ -153,7 +172,7 @@ export default function ShambaPlatform() {
   }, []);
 
   // Sync cache on modification
-  const saveToLocal = (key: string, data: any) => {
+  const saveToLocal = (key: string, data: unknown) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(key, JSON.stringify(data));
     }
@@ -198,15 +217,13 @@ export default function ShambaPlatform() {
 
   // --- Session Control ---
   // Users can transition between 4 agricultural perspectives
-  const [activeRole, setActiveRole] = React.useState<'investor' | 'farmer' | 'worker' | 'admin'>(routeRole);
-
-  React.useEffect(() => {
-    setActiveRole(routeRole);
-  }, [routeRole]);
+  const [currentActiveRole, setCurrentActiveRole] = React.useState<'investor' | 'farmer' | 'worker' | 'admin'>(routeRole);
 
   // Interactive Modals & Forms State
   const [showDepositModal, setShowDepositModal] = React.useState(false);
   const [depositAmount, setDepositAmount] = React.useState('');
+  const [showWithdrawModal, setShowWithdrawModal] = React.useState(false);
+  const [withdrawAmount, setWithdrawAmount] = React.useState('');
   const [showInvestModal, setShowInvestModal] = React.useState<Farm | null>(null);
   const [investUnits, setInvestUnits] = React.useState('1');
   const [investChamaId, setInvestChamaId] = React.useState('');
@@ -222,12 +239,12 @@ export default function ShambaPlatform() {
   const [aiRisk, setAiRisk] = React.useState<string>('medium');
   const [aiType, setAiType] = React.useState<string>('all');
   const [aiLocation, setAiLocation] = React.useState<string>('any');
-  const [aiMatchedData, setAiMatchedData] = React.useState<any | null>(null);
+  const [aiMatchedData, setAiMatchedData] = React.useState<AIMatchData | null>(null);
   const [aiMatchingLoading, setAiMatchingLoading] = React.useState(false);
 
   // --- AI Anomaly Assessment Controls ---
   const [anomalyTargetFarm, setAnomalyTargetFarm] = React.useState<string>('farm-1');
-  const [aiAnomalyData, setAiAnomalyData] = React.useState<any | null>(null);
+  const [aiAnomalyData, setAiAnomalyData] = React.useState<AIAnomalyData | null>(null);
   const [aiAnomalyLoading, setAiAnomalyLoading] = React.useState(false);
 
   // --- Log action helper ---
@@ -235,8 +252,8 @@ export default function ShambaPlatform() {
     const newLog: ActivityLog = {
       id: generateUniqueId('log'),
       userId: 'user-current',
-      userRole: activeRole,
-      userName: activeRole === 'investor' ? 'Joel Ndoho' : activeRole === 'farmer' ? 'Ezekiel Kiprotich' : activeRole === 'worker' ? 'Joseph Kuria' : 'Administrator',
+      userRole: currentActiveRole,
+      userName: currentActiveRole === 'investor' ? 'Joel Ndoho' : currentActiveRole === 'farmer' ? 'Ezekiel Kiprotich' : currentActiveRole === 'worker' ? 'Joseph Kuria' : 'Administrator',
       action,
       details,
       timestamp: getTimestampString()
@@ -286,14 +303,13 @@ export default function ShambaPlatform() {
   const [reportStatus, setReportStatus] = React.useState<'passed' | 'flagged'>('passed');
 
   // --- Dispute handling ---
-  const [disputedInvestment, setDisputedInvestment] = React.useState<string | null>(null);
 
   // --- API Handlers ---
   const handleAIMatchRequest = async () => {
     setAiMatchingLoading(true);
     setAiMatchedData(null);
     try {
-      const response = await fetch('/api/gemini/match', {
+      const response = await fetch('/api/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -344,8 +360,8 @@ export default function ShambaPlatform() {
       } else {
         alert(data.error || 'Server error occurred during anomaly check');
       }
-    } catch (err: any) {
-      alert('Anomaly Engine exception: ' + err.message);
+    } catch (err: unknown) {
+      alert('Anomaly Engine exception: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setAiAnomalyLoading(false);
     }
@@ -363,13 +379,35 @@ export default function ShambaPlatform() {
     setShowDepositModal(false);
   };
 
+  const handleWithdraw = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = Number(withdrawAmount);
+    if (isNaN(amt) || amt <= 0) return;
+    if (amt > walletBalance) {
+      alert('Insufficient funds for withdrawal');
+      return;
+    }
+    updateWalletState(walletBalance - amt);
+    triggerNotification('Withdrawal Dispatched', `KES ${amt.toLocaleString()} successfully transferred to your linked mobile number.`, 'success');
+    logActivity('Wallet withdrawal', `Withdrew KES ${amt.toLocaleString()} via M-Pesa B2C integration`);
+    setWithdrawAmount('');
+    setShowWithdrawModal(false);
+  };
+
   const handleAcquireUnits = (e: React.FormEvent) => {
     e.preventDefault();
     if (!showInvestModal) return;
     const units = Number(investUnits);
     const cost = units * showInvestModal.unitPrice;
 
-    if (cost > walletBalance) {
+    // Check balance source
+    if (investChamaId) {
+      const targetChama = chamas.find(c => c.id === investChamaId);
+      if (!targetChama || targetChama.totalBalance < cost) {
+        alert('Insufficient Chama syndicate pool balance to cover KES ' + cost.toLocaleString());
+        return;
+      }
+    } else if (cost > walletBalance) {
       alert('Insufficient wallet balance to cover KES ' + cost.toLocaleString());
       return;
     }
@@ -411,17 +449,18 @@ export default function ShambaPlatform() {
           return {
             ...c,
             activeInvestmentsCount: c.activeInvestmentsCount + 1,
-            totalBalance: Math.max(0, c.totalBalance - cost)
+            totalBalance: c.totalBalance - cost
           };
         }
         return c;
       });
       updateChamasState(updatedChamas);
+    } else {
+      updateWalletState(walletBalance - cost);
     }
 
     updateInvestmentsState([...investments, newInvestment]);
     updateFarmsState(updatedFarms);
-    updateWalletState(walletBalance - cost);
 
     triggerNotification(
       'Acquisition Placed',
@@ -640,7 +679,6 @@ export default function ShambaPlatform() {
     if (!targetFarm) return;
 
     // Refund/Payout money back to corresponding investors
-    const matchingInvestments = investments.filter(inv => inv.farmId === farmId && inv.status === 'active');
     let totalPaidOut = 0;
 
     const nextInvestments = investments.map(inv => {
@@ -713,18 +751,18 @@ export default function ShambaPlatform() {
           {/* Sandbox Role Quick Swapper */}
           <div className="p-0.5 flex flex-wrap items-center gap-1 border border-[#1B3022]/10 bg-[#F5F2EF] rounded-none">
             <span className="text-[9px] font-bold text-[#1B3022]/40 uppercase tracking-[0.2em] px-2.5 hidden xl:inline">ROLE:</span>
-            {[
+            {([
               { id: 'investor', label: 'Investor Hub', icon: Users },
               { id: 'farmer', label: 'Farmer Terminal', icon: Sprout },
               { id: 'worker', label: 'Field Agent', icon: UserCheck },
               { id: 'admin', label: 'Compliance Desk', icon: Shield }
-            ].map((role) => {
+            ] as const).map((role) => {
               const Icon = role.icon;
-              const isActive = activeRole === role.id;
+              const isActive = currentActiveRole === role.id;
               return (
                 <button
                   key={role.id}
-                  onClick={() => setActiveRole(role.id as any)}
+                  onClick={() => setCurrentActiveRole(role.id)}
                   className={`flex items-center gap-1 px-3 py-1 text-xs font-bold uppercase tracking-wider transition-all rounded-none ${
                     isActive
                       ? 'bg-[#1B3022] text-[#FDFCFB]'
@@ -749,13 +787,22 @@ export default function ShambaPlatform() {
                 <p className="text-[9px] text-[#1B3022]/50 font-bold uppercase tracking-[0.2em]">Escrow Balance</p>
                 <p className="font-mono text-xs font-black text-[#1B3022]">KES {walletBalance.toLocaleString()}</p>
               </div>
-              <button
-                onClick={() => setShowDepositModal(true)}
-                className="bg-[#D97757] hover:bg-[#c8623f] text-[#FDFCFB] p-1.5 rounded-none transition"
-                title="Deposit Capital via M-Pesa API"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setShowDepositModal(true)}
+                  className="bg-[#D97757] hover:bg-[#c8623f] text-[#FDFCFB] p-1.5 rounded-none transition"
+                  title="Deposit Capital via M-Pesa API"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setShowWithdrawModal(true)}
+                  className="bg-[#1B3022] hover:bg-[#203728] text-[#FDFCFB] p-1.5 rounded-none transition"
+                  title="Withdraw Funds to M-Pesa"
+                >
+                  <ArrowRight className="h-3.5 w-3.5 rotate-[-45deg]" />
+                </button>
+              </div>
             </div>
 
             {/* Notification Bell */}
@@ -819,7 +866,7 @@ export default function ShambaPlatform() {
       <div className="bg-[#F5F2EF] border-b border-[#1B3022]/10 py-3.5 px-4 text-center">
         <p className="text-[11px] text-[#1B3022]/80 uppercase tracking-widest font-semibold flex items-center justify-center gap-1.5">
           <AlertTriangle className="h-3.5 w-3.5 text-[#D97757]" />
-          <span>SHAMBA simulation model is active. Use the top sandbox switcher to experiment with Investor, Farmer, Field Worker and Compliance admin actions.</span>
+          <span>Farm Link simulation model is active. Use the top sandbox switcher to experiment with Investor, Farmer, Field Worker and Compliance admin actions.</span>
         </p>
       </div>
 
@@ -828,7 +875,7 @@ export default function ShambaPlatform() {
         {/* ========================================== */}
         {/* PART A: THE INVESTOR DASHBOARD PERSPECTIVE */}
         {/* ========================================== */}
-        {activeRole === 'investor' && (
+        {currentActiveRole === 'investor' && (
           <div className="space-y-8">
             
             {/* Visual Header / Value Prop Hero */}
@@ -839,7 +886,7 @@ export default function ShambaPlatform() {
                   Protect Your Capital while Powering Smallholder Farms
                 </h1>
                 <p className="text-xs md:text-sm text-[#FDFCFB]/80 font-sans tracking-wide leading-relaxed mt-4">
-                  SHAMBA utilizes legal escrow protections, licensed custodian frameworks, and physical field audit telemetry to connect urban capital securely to Kenyan agriculture.
+                  Farm Linkutilizes legal escrow protections, licensed custodian frameworks, and physical field audit telemetry to connect urban capital securely to Kenyan agriculture.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <a href="#directories" className="bg-[#D97757] hover:bg-[#c8623f] text-[#FDFCFB] px-5 py-2.5 rounded-none font-bold text-xs uppercase tracking-widest shadow transition">
@@ -983,7 +1030,7 @@ export default function ShambaPlatform() {
                         <div className="flex items-center justify-between border-b border-[#1B3022]/10 pb-3">
                           <span className="font-serif font-black text-sm text-[#1B3022] uppercase tracking-wide flex items-center gap-1.5">
                             <Sparkles className="h-4 w-4 text-[#D97757]" />
-                            SHAMBA AI allocation report
+                            Farm Link AI allocation report
                           </span>
                           {aiMatchedData.isSimulated && (
                             <span className="text-[9px] bg-[#F5F2EF] border border-[#1B3022]/10 text-[#1B3022]/60 font-bold px-2 py-0.5 rounded-none font-mono">
@@ -998,7 +1045,7 @@ export default function ShambaPlatform() {
 
                         <div className="space-y-3 mt-4">
                           <h3 className="text-[10px] font-bold text-[#D97757] tracking-[0.2em] uppercase">Proportional Recommendations</h3>
-                          {aiMatchedData.recommendations && aiMatchedData.recommendations.map((rec: any, idx: number) => {
+                          {aiMatchedData.recommendations && aiMatchedData.recommendations.map((rec, idx) => {
                             const matchingFarm = farms.find(f => f.id === rec.farmId);
                             return (
                               <div key={idx} className="bg-[#FDFCFB] border border-[#1B3022]/10 rounded-none p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1109,10 +1156,12 @@ export default function ShambaPlatform() {
                             } overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col justify-between`}
                           >
                             <div className="relative h-48 w-full bg-[#F5F2EF]">
-                              <img
+                              <Image
                                 src={farm.imageUrl}
                                 alt={farm.name}
-                                className="object-cover h-full w-full grayscale-[10%] contrast-[105%]"
+                                fill
+                                unoptimized
+                                className="object-cover grayscale-[10%] contrast-[105%]"
                               />
                               {/* Overlay badging */}
                               <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
@@ -1301,7 +1350,6 @@ export default function ShambaPlatform() {
 
                   <div className="space-y-3">
                     {investments.map((inv) => {
-                      const associatedFarm = farms.find(f => f.id === inv.farmId);
                       return (
                         <div key={inv.id} className="border border-[#1B3022]/10 bg-[#FDFCFB] rounded-none p-4 hover:border-[#D97757] transition">
                           <div className="flex justify-between items-start">
@@ -1370,7 +1418,7 @@ export default function ShambaPlatform() {
         {/* ========================================== */}
         {/* PART B: THE FARMER TERMINAL PERSPECTIVE */}
         {/* ========================================== */}
-        {activeRole === 'farmer' && (
+        {currentActiveRole === 'farmer' && (
           <div className="space-y-8">
             
             <div className="bg-[#1B3022] text-[#FDFCFB] p-6 rounded-none flex justify-between items-center border border-[#1B3022]/10">
@@ -1415,7 +1463,7 @@ export default function ShambaPlatform() {
                       <select
                         className="w-full bg-white border border-[#1B3022]/20 text-[#1B3022] rounded-none p-2 outline-none focus:border-[#D97757] transition"
                         value={propType}
-                        onChange={(e) => setPropType(e.target.value as any)}
+                        onChange={(e) => setPropType(e.target.value as 'crops' | 'livestock' | 'aquaculture' | 'cash_crops')}
                       >
                         <option value="crops">Field Crops</option>
                         <option value="livestock">Animals</option>
@@ -1525,15 +1573,15 @@ export default function ShambaPlatform() {
                   <div>
                     <label className="block text-[9px] font-bold text-[#D97757] tracking-wider uppercase mb-1">UPDATE LOG CATEGORY</label>
                     <div className="flex gap-2">
-                      {[
+                      {([
                         { id: 'progress', label: 'Growth / Sprt' },
                         { id: 'receipt', label: 'Receipt / Bill' },
                         { id: 'weather', label: 'Eco Alerts' }
-                      ].map(type => (
+                      ] as const).map(type => (
                         <button
                           key={type.id}
                           type="button"
-                          onClick={() => setUpdateType(type.id as any)}
+                          onClick={() => setUpdateType(type.id)}
                           className={`flex-1 text-[9px] font-bold uppercase tracking-wider py-2 px-1 rounded-none transition border ${
                             updateType === type.id
                               ? 'bg-[#1B3022]/10 border-[#1B3022] text-[#1B3022] font-black'
@@ -1639,7 +1687,7 @@ export default function ShambaPlatform() {
         {/* ========================================== */}
         {/* PART C: THE FIELD WORKER PERSPECTIVE */}
         {/* ========================================== */}
-        {activeRole === 'worker' && (
+        {currentActiveRole === 'worker' && (
           <div className="space-y-8">
             
             <div className="bg-[#1B3022] text-[#FDFCFB] p-6 rounded-none flex justify-between items-center border border-[#1B3022]/10 shadow-sm">
@@ -1796,7 +1844,7 @@ export default function ShambaPlatform() {
         {/* ========================================== */}
         {/* PART D: THE COMPLIANCE ADMIN SECURITY CENTER */}
         {/* ========================================== */}
-        {activeRole === 'admin' && (
+        {currentActiveRole === 'admin' && (
           <div className="space-y-8 col-span-3">
             
             <div className="bg-[#1B3022] text-[#FDFCFB] p-6 rounded-none flex justify-between items-center border border-[#1B3022]/10 mb-2">
@@ -2001,9 +2049,56 @@ export default function ShambaPlatform() {
                   </div>
                 </div>
 
+              {/* 3. RECENT FIELD AGENT AUDIT REPORTS */}
+              <div className="space-y-4 mt-8">
+                <h2 className="text-base font-serif font-black text-[#1B3022] flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-[#D97757]" />
+                  Recent Field Agent Audit Reports
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {reports.length === 0 ? (
+                    <p className="text-xs text-[#1B3022]/40 col-span-full py-4 italic">No audit reports submitted yet.</p>
+                  ) : (
+                    reports.map((report) => (
+                      <div key={report.id} className="bg-white border border-[#1B3022]/10 rounded-none p-4 shadow-sm space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-xs font-serif font-black text-[#1B3022]">{report.farmName}</h3>
+                            <p className="text-[10px] text-[#1B3022]/50">Auditor: {report.workerName}</p>
+                          </div>
+                          <span className={`text-[8px] font-bold font-mono tracking-widest uppercase px-1.5 py-0.5 rounded-none ${
+                            report.status === 'passed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {report.status?.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`h-2.5 w-2.5 ${i < report.rating ? 'text-amber-400 fill-amber-400' : 'text-stone-200'}`} />
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-[#1B3022]/80 line-clamp-2 leading-relaxed">
+                          {report.workerNotes}
+                        </p>
+                        <div className="pt-2 border-t border-[#1B3022]/10 flex justify-between items-center">
+                          <span className="text-[9px] text-[#1B3022]/40 font-mono">{new Date(report.visitDate).toLocaleDateString()}</span>
+                          {report.anomalyDetected && (
+                            <span className="flex items-center gap-1 text-[9px] text-red-600 font-bold uppercase tracking-tighter">
+                              <AlertTriangle className="h-3 w-3" />
+                              Flagged Anomaly
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
               </div>
 
               {/* Right Admin Panel: Activity Ledger */}
+
               <div className="space-y-6">
                 
                 <div className="bg-[#FDFCFB] border border-[#1B3022]/10 rounded-none p-6 shadow-sm">
@@ -2077,6 +2172,58 @@ export default function ShambaPlatform() {
                   className="flex-1 bg-[#1B3022] hover:bg-[#203728] text-white font-bold text-[10px] py-2 rounded-none uppercase tracking-widest cursor-pointer transition shadow"
                 >
                   Confirm checkout
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {showWithdrawModal && (
+        <div className="fixed inset-0 bg-[#121212]/75 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#FDFCFB] rounded-none max-w-sm w-full p-6 shadow-2xl border border-[#1B3022]/15"
+          >
+            <h3 className="font-serif font-black text-lg text-[#1B3022]">Withdraw Escrow Capital</h3>
+            <p className="text-[11px] text-[#1B3022]/60 mt-1 font-sans">Transfer available liquidity to your verified mobile money account.</p>
+
+            <form onSubmit={handleWithdraw} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-[9px] font-bold text-[#D97757] uppercase mb-1 tracking-wider font-mono">WITHDRAWAL AMOUNT (KES)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 font-bold text-stone-400 text-xs font-mono">KES</span>
+                  <input
+                    type="number"
+                    step="1000"
+                    placeholder="e.g. 25000"
+                    className="pl-12 pr-3 py-2 text-xs font-mono w-full bg-white border border-[#1B3022]/20 rounded-none focus:border-[#D97757] outline-none"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    required
+                  />
+                </div>
+                <p className="text-[9px] text-[#1B3022]/40 mt-1.5 font-mono">Available: KES {walletBalance.toLocaleString()}</p>
+              </div>
+
+              <div className="bg-[#F5F2EF] text-[#1B3022] p-2.5 rounded-none border border-[#1B3022]/10 text-[10px] leading-relaxed font-sans">
+                <strong>Liquidity Notice:</strong> Withdrawals are processed instantly via our B2C disbursement API. Standard carrier transaction fees may apply.
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowWithdrawModal(false)}
+                  className="flex-1 bg-stone-150 hover:bg-stone-200 text-stone-600 font-bold text-[10px] py-2 rounded-none uppercase tracking-widest cursor-pointer transition border border-stone-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#1B3022] hover:bg-[#203728] text-white font-bold text-[10px] py-2 rounded-none uppercase tracking-widest cursor-pointer transition shadow"
+                >
+                  Confirm Transfer
                 </button>
               </div>
             </form>
@@ -2170,12 +2317,12 @@ export default function ShambaPlatform() {
         <div className="max-w-7xl mx-auto space-y-3">
           <div className="flex items-center justify-center gap-2">
             <Sprout className="h-5 w-5 text-emerald-400 animate-pulse" />
-            <span className="font-serif italic font-bold text-[#FDFCFB]">SHAMBA Escrow Systems Africa</span>
+            <span className="font-serif italic font-bold text-[#FDFCFB]">Farm Link Escrow Systems Africa</span>
           </div>
           <p className="max-w-md mx-auto text-[11px] leading-relaxed text-[#FDFCFB]/70 font-sans">
             Registered securities intermediary trial playground. Licensed physical custody escrow model designed in Nairobi, Kenya. Built in full-stack App Router compliance, integrating modern Gemini match matrices.
           </p>
-          <p className="text-[10px] text-[#FDFCFB]/40 font-mono uppercase tracking-widest mt-2">© 2026 SHAMBA. All rights reserved.</p>
+          <p className="text-[10px] text-[#FDFCFB]/40 font-mono uppercase tracking-widest mt-2">© 2026 Farm Link. All rights reserved.</p>
         </div>
       </footer>
 

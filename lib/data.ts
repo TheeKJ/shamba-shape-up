@@ -336,7 +336,7 @@ export const INITIAL_NOTIFICATIONS: Notification[] = [
     id: 'notif-1',
     userId: 'all',
     title: 'Platform Upgrade',
-    message: 'Welcome to SHAMBA! AI-powered matching and Chama modes are now live for all users in East Africa.',
+    message: 'Welcome to Farm Link! AI-powered matching and Chama modes are now live for all users in East Africa.',
     type: 'info',
     date: '2026-05-29T10:00:00Z',
     read: false,

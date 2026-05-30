@@ -147,7 +147,7 @@ export default function RegisterPage() {
             </div>
             <div>
               <span className="font-serif text-3xl font-black uppercase leading-none tracking-tighter text-[#1B3022]">
-                SHAMBA
+               Farm Link
               </span>
               <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-[#D97757]">
                 Account registry
@@ -307,7 +307,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
-                placeholder="name@shamba.africa"
+                placeholder="name@Farm Link.africa"
                 className="w-full border border-[#1B3022]/15 bg-[#FDFCFB] px-3 py-2.5 text-sm font-semibold text-[#1B3022] outline-none transition placeholder:text-[#1B3022]/30 focus:border-[#D97757]"
               />
             </Field>

@@ -1,5 +1,5 @@
 {
-  "name": "Shamba",
+  "name": "Farm Link",
   "description": "AI-powered agricultural investment platform connecting urban capital to rural productivity through group pools, verified listings, and trust scoring.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

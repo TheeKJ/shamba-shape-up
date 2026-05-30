@@ -26,11 +26,11 @@ export function WelcomeEmail({
   return (
     <Html>
       <Head />
-      <Preview>Your SHAMBA {roleLabel} profile is ready.</Preview>
+      <Preview>Your Farm Link {roleLabel} profile is ready.</Preview>
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.brandBand}>
-            <Text style={styles.brand}>SHAMBA</Text>
+            <Text style={styles.brand}>Farm Link</Text>
             <Text style={styles.eyebrow}>Agricultural Trust Infrastructure</Text>
           </Section>
 
@@ -38,7 +38,7 @@ export function WelcomeEmail({
             <Text style={styles.kicker}>Account registry</Text>
             <Heading style={styles.heading}>Welcome, {fullName}.</Heading>
             <Text style={styles.paragraph}>
-              Your SHAMBA profile has been created for the {roleLabel} workspace.
+              Your Farm Link profile has been created for the {roleLabel} workspace.
               {county ? ` We have recorded your primary operating county as ${county}.` : ''}
             </Text>
 
@@ -57,7 +57,7 @@ export function WelcomeEmail({
             </Text>
 
             <Text style={styles.note}>
-              SHAMBA connects verified farm projects, field audit telemetry, pooled Chama capital, and settlement controls in one operating layer.
+              Farm Linkconnects verified farm projects, field audit telemetry, pooled Chama capital, and settlement controls in one operating layer.
             </Text>
           </Section>
         </Container>

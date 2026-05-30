@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       .split(/[._-]/)
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ') || 'SHAMBA User';
+      .join(' ') || 'Farm LinkUser';
 
     const profile = {
       id: userId,

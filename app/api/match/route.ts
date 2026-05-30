@@ -1,9 +1,24 @@
 import { GoogleGenAI } from '@google/genai';
+import type { Farm } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
+
+type MatchRecommendation = {
+  farmId: string;
+  suitabilityScore: number;
+  allocationAmount: number;
+  reason: string;
+};
 
 export async function POST(req: NextRequest) {
   try {
-    const { budget, riskAppetite, locationPreference, farmType, farms } = await req.json();
+    const { budget, riskAppetite, locationPreference, farmType, farms } = await req.json() as {
+      budget: number;
+      riskAppetite: 'low' | 'medium' | 'high';
+      locationPreference?: string;
+      farmType?: string;
+      farms?: Farm[];
+    };
+    const availableFarms = Array.isArray(farms) ? farms : [];
 
     if (!budget || !riskAppetite) {
       return NextResponse.json({ error: 'Budget and Risk Appetite are required parameters' }, { status: 400 });
@@ -13,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
       // Graceful local fallback to provide high-fidelity offline matches if API key is not configured yet
-      return NextResponse.json(generateLocalFallbackMatch(budget, riskAppetite, locationPreference, farmType, farms));
+      return NextResponse.json(generateLocalFallbackMatch(budget, riskAppetite, locationPreference, farmType, availableFarms));
     }
 
     const ai = new GoogleGenAI({
@@ -52,7 +67,7 @@ The JSON object must have this structure:
 
 Available Farm Listings on Shamba:
 ${JSON.stringify(
-  farms.map((f: any) => ({
+  availableFarms.map((f: Farm) => ({
     id: f.id,
     name: f.name,
     type: f.type,
@@ -84,13 +99,20 @@ ${JSON.stringify(
     const resultObj = JSON.parse(cleanedText);
 
     return NextResponse.json(resultObj);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error('Error in gemini match route:', err);
-    return NextResponse.json({ error: 'Failed to generate match report: ' + err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate match report: ' + message }, { status: 500 });
   }
 }
 
-function generateLocalFallbackMatch(budget: number, risk: string, locPref: string, typePref: string, farms: any[]) {
+function generateLocalFallbackMatch(
+  budget: number,
+  risk: string,
+  locPref: string | undefined,
+  typePref: string | undefined,
+  farms: Farm[],
+) {
   // Sophisticated heuristic fallback to feel incredibly rich and instantly functional
   const parsedBudget = Number(budget);
   
@@ -140,14 +162,13 @@ function generateLocalFallbackMatch(budget: number, risk: string, locPref: strin
   matches.sort((a, b) => b.suitabilityScore - a.suitabilityScore);
   
   // Allocate budget proportionally to the top 2-3 matched farms
-  const recommendations: any[] = [];
-  let remainingBudget = parsedBudget;
+  const recommendations: MatchRecommendation[] = [];
   const topMatches = matches.filter(m => m.suitabilityScore >= 50).slice(0, 3);
   
   if (topMatches.length > 0) {
     const divisor = topMatches.length;
     topMatches.forEach((match) => {
-      let idealAlloc = Math.floor(parsedBudget / divisor);
+      const idealAlloc = Math.floor(parsedBudget / divisor);
       // Align with unit price increments (e.g. 5,000)
       const units = Math.floor(idealAlloc / match.unitPrice);
       const alignedAlloc = units * match.unitPrice;
@@ -159,7 +180,6 @@ function generateLocalFallbackMatch(budget: number, risk: string, locPref: strin
           allocationAmount: alignedAlloc,
           reason: `Highly suited for your ${risk} risk index. Selected due to its outstanding ${match.riskLevel}-risk rating and a farmer credit viability score.`
         });
-        remainingBudget -= alignedAlloc;
       }
     });
   }

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
       // High-integrity offline simulation for admin portal demo purposes
-      return NextResponse.json(generateLocalFallbackAnomaly(farm, updates, reports));
+      return NextResponse.json(generateLocalFallbackAnomaly(farm, updates));
     }
 
     const ai = new GoogleGenAI({
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const systemPrompt = `You are the lead Fraud Analyser and Risk Assessor for SHAMBA's administrative security layer.
+    const systemPrompt = `You are the lead Fraud Analyser and Risk Assessor for Farm Link's administrative security layer.
 You evaluate updates, field agent inspection inputs, and crop timelines to identify any suspicious user behaviors, discrepancies in yields, visual reports, or update omissions.
 Explain if the update pace matches natural cultivation cycles (e.g., a tomato cannot go from transplanting to harvesting in 4 days).
 Return your response strictly as a JSON object. Do not prepend markdown formatting backticks like \`\`\`json. Return only the JSON object itself.
@@ -66,13 +66,17 @@ ${JSON.stringify(reports, null, 2)}`;
     const resultObj = JSON.parse(cleanedText);
 
     return NextResponse.json(resultObj);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error('Error in gemini anomaly route:', err);
-    return NextResponse.json({ error: 'Failed to complete anomaly computation: ' + err.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to complete anomaly computation: ' + message }, { status: 500 });
   }
 }
 
-function generateLocalFallbackAnomaly(farm: any, updates: any[], reports: any[]) {
+function generateLocalFallbackAnomaly(
+  farm: { verificationStatus: string; name: string; farmerCreditScore: number },
+  updates: unknown[],
+) {
   const isPending = farm.verificationStatus === 'pending';
   const hasNoUpdates = !updates || updates.length === 0;
   

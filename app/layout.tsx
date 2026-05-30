@@ -16,7 +16,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Shamba | The Agricultural Trust Infrastructure',
+  title: 'Farm Link | The Agricultural Trust Infrastructure',
   description: 'AI-powered agricultural investment platform connecting urban capital to rural productivity through group pools, verified listings, and trust scoring.',
 };
 
