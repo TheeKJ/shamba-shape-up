@@ -98,6 +98,21 @@ export async function POST(req: NextRequest) {
     const authData = await readSupabaseJson(authResponse);
 
     if (!authResponse.ok) {
+      if (authResponse.status === 429) {
+        const retryAfter = authResponse.headers.get('retry-after');
+        const retryText = retryAfter
+          ? ` Please try again in ${retryAfter} seconds.`
+          : ' Please wait a moment before trying again.';
+
+        return NextResponse.json(
+          {
+            error: `Registration is temporarily rate limited.${retryText}`,
+            retryAfter,
+          },
+          { status: 429 },
+        );
+      }
+
       return NextResponse.json(
         { error: authData?.msg || authData?.message || authData?.error_description || 'Supabase auth registration failed.' },
         { status: authResponse.status },

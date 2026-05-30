@@ -108,7 +108,10 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed.');
+        const retryMessage = data.retryAfter
+          ? ` Try again in ${data.retryAfter} seconds.`
+          : '';
+        throw new Error(`${data.error || 'Registration failed.'}${retryMessage}`);
       }
 
       setStatus('success');
