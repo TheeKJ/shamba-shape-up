@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { sendWelcomeEmail } from '@/lib/email';
-
 const USER_ROLES = ['investor', 'farmer', 'worker', 'admin'] as const;
 
 type UserRole = (typeof USER_ROLES)[number];
@@ -23,18 +21,27 @@ function cleanText(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-async function readSupabaseJson(response: Response) {
-  const text = await response.text();
+function createSimulatedId(prefix: string) {
+  const random = Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${Date.now()}-${random}`;
+}
 
-  if (!text) {
-    return null;
-  }
+function setSimulatedAuthCookies(response: NextResponse, role: UserRole, accessToken: string) {
+  response.cookies.set('shamba_access_token', accessToken, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 8,
+  });
 
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { message: text };
-  }
+  response.cookies.set('shamba_user_role', role, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 8,
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -62,133 +69,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey =
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !anonKey) {
-      return NextResponse.json(
-        { error: 'Supabase URL and anon key are not configured on the server.' },
-        { status: 500 },
-      );
-    }
-
-    const authResponse = await fetch(`${supabaseUrl}/auth/v1/signup`, {
-      method: 'POST',
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email,
-        password,
-        data: {
-          full_name: fullName,
-          role,
-          phone: phone || null,
-          county: county || null,
-        },
-      }),
-    });
-
-    const authData = await readSupabaseJson(authResponse);
-
-    if (!authResponse.ok) {
-      return NextResponse.json(
-        { error: authData?.msg || authData?.message || authData?.error_description || 'Supabase auth registration failed.' },
-        { status: authResponse.status },
-      );
-    }
-
-    const authUser = authData?.user || authData;
-    const authUserId = authUser?.id;
-
-    if (!authUserId) {
-      return NextResponse.json(
-        {
-          error: 'Supabase auth did not return a user id.',
-          supabaseResponseKeys: authData && typeof authData === 'object' ? Object.keys(authData) : [],
-        },
-        { status: 502 },
-      );
-    }
-
-    const storageKey = serviceRoleKey || anonKey;
-    const profileResponse = await fetch(`${supabaseUrl}/rest/v1/users`, {
-      method: 'POST',
-      headers: {
-        apikey: storageKey,
-        Authorization: `Bearer ${storageKey}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      },
-      body: JSON.stringify({
-        id: authUserId,
-        email,
-        full_name: fullName,
-        role,
-        phone: phone || null,
-        county: county || null,
-      }),
-    });
-
-    const profileData = await readSupabaseJson(profileResponse);
-
-    if (!profileResponse.ok) {
-      return NextResponse.json(
-        {
-          error: profileData?.message || 'Auth user was created, but profile storage failed.',
-          authUserId,
-        },
-        { status: profileResponse.status },
-      );
-    }
-
-    const emailDelivery = await sendWelcomeEmail({
-      to: email,
-      fullName,
+    const userId = createSimulatedId('sim-user');
+    const accessToken = createSimulatedId('sim-token');
+    const profile = {
+      id: userId,
+      email,
+      full_name: fullName,
       role,
+      phone: phone || null,
       county: county || null,
-      requiresEmailConfirmation: !authData?.session,
-    });
+      avatar_url: null,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_simulated: true,
+    };
 
     const response = NextResponse.json(
       {
-        user: profileData?.[0] || profileData,
-        session: authData?.session || null,
-        requiresEmailConfirmation: !authData?.session,
-        emailDelivery,
+        user: {
+          id: userId,
+          email,
+          user_metadata: {
+            full_name: fullName,
+            role,
+            phone: phone || null,
+            county: county || null,
+          },
+          is_simulated: true,
+        },
+        profile,
+        session: {
+          accessToken,
+          refreshToken: createSimulatedId('sim-refresh'),
+          expiresIn: 60 * 60 * 8,
+          tokenType: 'bearer',
+        },
+        requiresEmailConfirmation: false,
+        emailDelivery: {
+          status: 'skipped',
+          reason: 'Auth simulation mode does not send registration emails.',
+        },
+        isSimulated: true,
       },
       { status: 201 },
     );
 
-    if (authData?.session?.access_token) {
-      response.cookies.set('shamba_access_token', authData.session.access_token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        maxAge: authData.session.expires_in || 3600,
-      });
-
-      response.cookies.set('shamba_user_role', role, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        maxAge: authData.session.expires_in || 3600,
-      });
-    }
+    setSimulatedAuthCookies(response, role, accessToken);
 
     return response;
   } catch (error) {
-    console.error('Registration route failed:', error);
+    console.error('Simulated registration route failed:', error);
     return NextResponse.json(
-      { error: 'Unable to complete registration.' },
+      { error: 'Unable to complete simulated registration.' },
       { status: 500 },
     );
   }

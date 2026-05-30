@@ -39,7 +39,7 @@ export default function LoginPage() {
     setStatus('loading');
     setMessage('');
     setWorkspace('');
-    const toastId = toast.loading('Checking your Supabase credentials...');
+    const toastId = toast.loading('Starting simulated session...');
 
     try {
       const response = await fetch('/api/login', {
@@ -58,7 +58,7 @@ export default function LoginPage() {
       const workspaceLabel = workspaceLabels[role] || workspaceLabels.investor;
       setWorkspace(workspaceLabel);
       setStatus('success');
-      setMessage('Login successful. Your Supabase session was issued and profile loaded.');
+      setMessage('Simulated login successful. Your role session is active.');
       toast.success(`Welcome back. Opening ${workspaceLabel}.`, { id: toastId });
       setPassword('');
       router.push(`/${role}`);
@@ -111,7 +111,7 @@ export default function LoginPage() {
               Enter the escrow operating console.
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-6 text-[#FDFCFB]/75">
-              Sign in with the Supabase identity created from registration and resume the workspace tied to your role.
+              Sign in with any test email and resume the workspace tied to the simulated role session.
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-3">
@@ -141,8 +141,8 @@ export default function LoginPage() {
               <h2 className="font-serif text-base font-black text-[#1B3022]">Session handoff</h2>
             </div>
             <div className="mt-4 space-y-3 text-xs leading-5 text-[#1B3022]/65">
-              <p>Supabase validates the email and password through Auth.</p>
-              <p>The API then reads the matching profile from `public.users` under RLS.</p>
+              <p>The API accepts any email with an 8-character password.</p>
+              <p>Role is inferred from the email prefix: admin, farmer, worker, or investor.</p>
               <p>The returned role can route the user into the correct workspace.</p>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-2 border-b border-[#1B3022]/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[#D97757]">
-                Supabase auth
+                Simulated auth
               </p>
               <h2 className="mt-1 font-serif text-2xl font-black tracking-tight text-[#1B3022]">
                 Login

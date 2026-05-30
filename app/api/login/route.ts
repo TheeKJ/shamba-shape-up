@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+type UserRole = 'investor' | 'farmer' | 'worker' | 'admin';
+
 type LoginPayload = {
   email?: string;
   password?: string;
@@ -9,18 +11,45 @@ function cleanText(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-async function readSupabaseJson(response: Response) {
-  const text = await response.text();
+function createSimulatedId(prefix: string) {
+  const random = Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${Date.now()}-${random}`;
+}
 
-  if (!text) {
-    return null;
+function inferRoleFromEmail(email: string): UserRole {
+  const localPart = email.split('@')[0] || '';
+
+  if (localPart.includes('admin')) {
+    return 'admin';
   }
 
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { message: text };
+  if (localPart.includes('worker') || localPart.includes('agent')) {
+    return 'worker';
   }
+
+  if (localPart.includes('farmer')) {
+    return 'farmer';
+  }
+
+  return 'investor';
+}
+
+function setSimulatedAuthCookies(response: NextResponse, role: UserRole, accessToken: string) {
+  response.cookies.set('shamba_access_token', accessToken, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 8,
+  });
+
+  response.cookies.set('shamba_user_role', role, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 8,
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -36,95 +65,62 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey =
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-    if (!supabaseUrl || !anonKey) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: 'Supabase URL and anon key are not configured on the server.' },
-        { status: 500 },
+        { error: 'Password must be at least 8 characters in simulation mode.' },
+        { status: 400 },
       );
     }
 
-    const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    const role = inferRoleFromEmail(email);
+    const userId = createSimulatedId('sim-user');
+    const accessToken = createSimulatedId('sim-token');
+    const fullName = email
+      .split('@')[0]
+      .split(/[._-]/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ') || 'SHAMBA User';
 
-    const authData = await readSupabaseJson(authResponse);
+    const profile = {
+      id: userId,
+      email,
+      full_name: fullName,
+      role,
+      phone: null,
+      county: null,
+      avatar_url: null,
+      is_active: true,
+      is_simulated: true,
+    };
 
-    if (!authResponse.ok) {
-      return NextResponse.json(
-        { error: authData?.msg || authData?.message || authData?.error_description || 'Invalid login credentials.' },
-        { status: authResponse.status },
-      );
-    }
-
-    const accessToken = authData?.access_token;
-    const userId = authData?.user?.id;
-    let profile = null;
-
-    if (accessToken && userId) {
-      const profileResponse = await fetch(
-        `${supabaseUrl}/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=*`,
-        {
-          method: 'GET',
-          headers: {
-            apikey: anonKey,
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      const profileData = await readSupabaseJson(profileResponse);
-
-      if (profileResponse.ok) {
-        profile = profileData?.[0] || null;
-      }
-    }
-
-    const role = profile?.role || authData?.user?.user_metadata?.role || 'investor';
     const response = NextResponse.json({
-      user: authData?.user,
+      user: {
+        id: userId,
+        email,
+        user_metadata: {
+          full_name: fullName,
+          role,
+        },
+        is_simulated: true,
+      },
       profile,
       session: {
-        accessToken: authData?.access_token,
-        refreshToken: authData?.refresh_token,
-        expiresIn: authData?.expires_in,
-        tokenType: authData?.token_type,
+        accessToken,
+        refreshToken: createSimulatedId('sim-refresh'),
+        expiresIn: 60 * 60 * 8,
+        tokenType: 'bearer',
       },
+      isSimulated: true,
     });
 
-    response.cookies.set('shamba_access_token', authData?.access_token || '', {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: authData?.expires_in || 3600,
-    });
-
-    response.cookies.set('shamba_user_role', role, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: authData?.expires_in || 3600,
-    });
+    setSimulatedAuthCookies(response, role, accessToken);
 
     return response;
   } catch (error) {
-    console.error('Login route failed:', error);
+    console.error('Simulated login route failed:', error);
     return NextResponse.json(
-      { error: 'Unable to complete login.' },
+      { error: 'Unable to complete simulated login.' },
       { status: 500 },
     );
   }

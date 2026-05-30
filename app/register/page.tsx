@@ -96,7 +96,7 @@ export default function RegisterPage() {
     }
 
     setStatus("loading");
-    const toastId = toast.loading("Creating your Supabase account...");
+    const toastId = toast.loading("Creating simulated account...");
 
     try {
       const response = await fetch("/api/register", {
@@ -119,26 +119,10 @@ export default function RegisterPage() {
       }
 
       setStatus("success");
-      const successMessage = data.requiresEmailConfirmation
-        ? "Account created. Check your email to confirm access before signing in."
-        : "Account created and stored in Supabase successfully.";
-      setMessage(
-        data.requiresEmailConfirmation
-          ? "Account created. Check your email to confirm access before signing in."
-          : "Account created and stored in Supabase successfully.",
-      );
+      const successMessage = "Simulated account created. You can continue without Supabase.";
+      setMessage(successMessage);
       toast.success(successMessage, { id: toastId });
-      if (data.emailDelivery?.status === "sent") {
-        toast.success("Welcome email sent.");
-      } else if (data.emailDelivery?.status === "skipped") {
-        toast(
-          "Account created. Welcome email skipped because Resend is not configured.",
-        );
-      } else if (data.emailDelivery?.status === "failed") {
-        toast.error(
-          `Account created, but welcome email failed: ${data.emailDelivery.reason}`,
-        );
-      }
+      toast("Email delivery skipped in simulation mode.");
       setFullName("");
       setEmail("");
       setPhone("");
@@ -202,8 +186,8 @@ export default function RegisterPage() {
               {[
                 ["4", "role workspaces"],
                 ["KES", "escrow-first records"],
-                ["100%", "Supabase-backed auth"],
-                ["Live", "profile storage API"],
+                ["100%", "simulated auth"],
+                ["Local", "cookie session"],
               ].map(([value, label]) => (
                 <div
                   key={label}
@@ -224,12 +208,12 @@ export default function RegisterPage() {
             <div className="flex items-center gap-2 border-b border-[#1B3022]/10 pb-3">
               <Lock className="h-4 w-4 text-[#D97757]" />
               <h2 className="font-serif text-base font-black text-[#1B3022]">
-                Supabase flow
+                Simulation flow
               </h2>
             </div>
             <div className="mt-4 space-y-3 text-xs leading-5 text-[#1B3022]/65">
-              <p>1. Auth user is created through Supabase Auth.</p>
-              <p>2. Role profile is stored in the `public.users` table.</p>
+              <p>1. A simulated auth profile is created by the API route.</p>
+              <p>2. Role and session cookies are set for the route guard.</p>
               <p>
                 3. The app can route the user into the matching dashboard
                 workspace.
@@ -429,7 +413,7 @@ export default function RegisterPage() {
             <p className="max-w-sm text-[11px] leading-5 text-[#1B3022]/55">
               Your selected role is{" "}
               <strong className="text-[#1B3022]">{selectedRole.label}</strong>.
-              Access can be tightened later with Supabase RLS policies.
+              Access can be reconnected to Supabase when production auth is ready.
             </p>
             <button
               type="submit"
