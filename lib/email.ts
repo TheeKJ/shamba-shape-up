@@ -1,5 +1,5 @@
 import { jsx } from 'react/jsx-runtime';
-import { Resend } from 'resend';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import { WelcomeEmail } from '@/emails/welcome-email';
 
@@ -30,59 +30,45 @@ export async function sendWelcomeEmail({
   county,
   requiresEmailConfirmation = false,
 }: SendWelcomeEmailInput): Promise<EmailDeliveryResult> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const provider = process.env.EMAIL_PROVIDER;
 
-  if (!apiKey) {
+  if (!provider) {
     return {
       status: 'skipped',
-      reason: 'RESEND_API_KEY is not configured.',
+      reason: 'No email provider is configured.',
     };
   }
 
-  const resend = new Resend(apiKey);
   const roleLabel = roleLabels[role] || 'SHAMBA Workspace';
-  const from = process.env.RESEND_FROM_EMAIL || 'SHAMBA <onboarding@resend.dev>';
-  const replyTo = process.env.RESEND_REPLY_TO_EMAIL;
+  const from = process.env.EMAIL_FROM_EMAIL || 'SHAMBA <no-reply@shamba.example>';
+  const replyTo = process.env.EMAIL_REPLY_TO_EMAIL;
+  const subject = `Welcome to SHAMBA ${roleLabel}`;
+  const html = renderToStaticMarkup(
+    jsx(WelcomeEmail, {
+      fullName,
+      roleLabel,
+      county,
+      requiresEmailConfirmation,
+    }),
+  );
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from,
+  if (provider === 'console' || provider === 'log') {
+    console.info('Email payload', {
       to,
+      from,
       replyTo,
-      subject: `Welcome to SHAMBA ${roleLabel}`,
-      react: jsx(WelcomeEmail, {
-        fullName,
-        roleLabel,
-        county,
-        requiresEmailConfirmation,
-      }),
-      tags: [
-        {
-          name: 'type',
-          value: 'welcome',
-        },
-        {
-          name: 'role',
-          value: role,
-        },
-      ],
+      subject,
+      html,
     });
 
-    if (error) {
-      return {
-        status: 'failed',
-        reason: error.message,
-      };
-    }
-
     return {
-      status: 'sent',
-      id: data?.id || '',
-    };
-  } catch (error) {
-    return {
-      status: 'failed',
-      reason: error instanceof Error ? error.message : 'Unexpected email delivery error.',
+      status: 'skipped',
+      reason: 'Email delivery was logged rather than sent.',
     };
   }
+
+  return {
+    status: 'failed',
+    reason: `Email provider '${provider}' is not implemented.`,
+  };
 }
