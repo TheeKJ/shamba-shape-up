@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Sprout,
@@ -63,6 +64,14 @@ function getRandomSeed(): number {
 }
 
 export default function ShambaPlatform() {
+  const pathname = usePathname();
+  const routeRole = React.useMemo(() => {
+    const segment = pathname.split('/')[1];
+    return ['investor', 'farmer', 'worker', 'admin'].includes(segment)
+      ? segment as 'investor' | 'farmer' | 'worker' | 'admin'
+      : 'investor';
+  }, [pathname]);
+
   // --- Persistent State Handlers (Sync with localStorage) ---
   const [farms, setFarms] = React.useState<Farm[]>([]);
   const [chamas, setChamas] = React.useState<Chama[]>([]);
@@ -189,7 +198,11 @@ export default function ShambaPlatform() {
 
   // --- Session Control ---
   // Users can transition between 4 agricultural perspectives
-  const [activeRole, setActiveRole] = React.useState<'investor' | 'farmer' | 'worker' | 'admin'>('investor');
+  const [activeRole, setActiveRole] = React.useState<'investor' | 'farmer' | 'worker' | 'admin'>(routeRole);
+
+  React.useEffect(() => {
+    setActiveRole(routeRole);
+  }, [routeRole]);
 
   // Interactive Modals & Forms State
   const [showDepositModal, setShowDepositModal] = React.useState(false);

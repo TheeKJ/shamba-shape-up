@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
+import { AppToaster } from './toaster';
 import './globals.css'; 
 
 const inter = Inter({
@@ -22,7 +23,10 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body suppressHydrationWarning className="bg-[#FDFCFB] text-[#1B3022] font-sans antialiased">{children}</body>
+      <body suppressHydrationWarning className="bg-[#FDFCFB] text-[#1B3022] font-sans antialiased">
+        {children}
+        <AppToaster />
+      </body>
     </html>
   );
 }
