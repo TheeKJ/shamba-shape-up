@@ -44,38 +44,45 @@ export async function sendWelcomeEmail({
   const from = process.env.RESEND_FROM_EMAIL || 'SHAMBA <onboarding@resend.dev>';
   const replyTo = process.env.RESEND_REPLY_TO_EMAIL;
 
-  const { data, error } = await resend.emails.send({
-    from,
-    to,
-    replyTo,
-    subject: `Welcome to SHAMBA ${roleLabel}`,
-    react: jsx(WelcomeEmail, {
-      fullName,
-      roleLabel,
-      county,
-      requiresEmailConfirmation,
-    }),
-    tags: [
-      {
-        name: 'type',
-        value: 'welcome',
-      },
-      {
-        name: 'role',
-        value: role,
-      },
-    ],
-  });
+  try {
+    const { data, error } = await resend.emails.send({
+      from,
+      to,
+      replyTo,
+      subject: `Welcome to SHAMBA ${roleLabel}`,
+      react: jsx(WelcomeEmail, {
+        fullName,
+        roleLabel,
+        county,
+        requiresEmailConfirmation,
+      }),
+      tags: [
+        {
+          name: 'type',
+          value: 'welcome',
+        },
+        {
+          name: 'role',
+          value: role,
+        },
+      ],
+    });
 
-  if (error) {
+    if (error) {
+      return {
+        status: 'failed',
+        reason: error.message,
+      };
+    }
+
+    return {
+      status: 'sent',
+      id: data?.id || '',
+    };
+  } catch (error) {
     return {
       status: 'failed',
-      reason: error.message,
+      reason: error instanceof Error ? error.message : 'Unexpected email delivery error.',
     };
   }
-
-  return {
-    status: 'sent',
-    id: data?.id || '',
-  };
 }

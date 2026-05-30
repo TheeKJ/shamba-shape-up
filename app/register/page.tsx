@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Link from 'next/link';
-import { motion } from 'motion/react';
-import toast from 'react-hot-toast';
+import * as React from "react";
+import Link from "next/link";
+import { motion } from "motion/react";
+import toast from "react-hot-toast";
 import {
   ArrowRight,
   CheckCircle,
@@ -15,9 +15,9 @@ import {
   UserCheck,
   Users,
   Wallet,
-} from 'lucide-react';
+} from "lucide-react";
 
-type Role = 'investor' | 'farmer' | 'worker' | 'admin';
+type Role = "investor" | "farmer" | "worker" | "admin";
 
 const roleOptions: Array<{
   id: Role;
@@ -26,75 +26,82 @@ const roleOptions: Array<{
   icon: React.ComponentType<{ className?: string }>;
 }> = [
   {
-    id: 'investor',
-    label: 'Investor Hub',
-    description: 'Acquire verified farm units and join pooled Chama allocations.',
+    id: "investor",
+    label: "Investor Hub",
+    description:
+      "Acquire verified farm units and join pooled Chama allocations.",
     icon: Users,
   },
   {
-    id: 'farmer',
-    label: 'Farmer Terminal',
-    description: 'Register projects, submit crop updates, and receive escrow releases.',
+    id: "farmer",
+    label: "Farmer Terminal",
+    description:
+      "Register projects, submit crop updates, and receive escrow releases.",
     icon: Sprout,
   },
   {
-    id: 'worker',
-    label: 'Field Agent',
-    description: 'Complete physical verification reports and geo-tagged inspections.',
+    id: "worker",
+    label: "Field Agent",
+    description:
+      "Complete physical verification reports and geo-tagged inspections.",
     icon: UserCheck,
   },
   {
-    id: 'admin',
-    label: 'Compliance Desk',
-    description: 'Review listings, monitor telemetry, and authorize settlement flows.',
+    id: "admin",
+    label: "Compliance Desk",
+    description:
+      "Review listings, monitor telemetry, and authorize settlement flows.",
     icon: Shield,
   },
 ];
 
 const counties = [
-  'Nairobi County',
-  'Nakuru County',
-  'Kisumu County',
-  'Muranga County',
-  'Kilifi County',
-  'Laikipia County',
-  'Mombasa County',
-  'Kiambu County',
+  "Nairobi County",
+  "Nakuru County",
+  "Kisumu County",
+  "Muranga County",
+  "Kilifi County",
+  "Laikipia County",
+  "Mombasa County",
+  "Kiambu County",
 ];
 
 export default function RegisterPage() {
-  const [role, setRole] = React.useState<Role>('investor');
-  const [fullName, setFullName] = React.useState('');
-  const [email, setEmail] = React.useState('');
-  const [phone, setPhone] = React.useState('');
-  const [county, setCounty] = React.useState('Nairobi County');
-  const [password, setPassword] = React.useState('');
-  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [role, setRole] = React.useState<Role>("investor");
+  const [fullName, setFullName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [county, setCounty] = React.useState("Nairobi County");
+  const [password, setPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [message, setMessage] = React.useState('');
+  const [status, setStatus] = React.useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [message, setMessage] = React.useState("");
 
-  const selectedRole = roleOptions.find((option) => option.id === role) || roleOptions[0];
+  const selectedRole =
+    roleOptions.find((option) => option.id === role) || roleOptions[0];
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage('');
+    setMessage("");
 
     if (password !== confirmPassword) {
-      setStatus('error');
-      setMessage('Passwords do not match.');
-      toast.error('Passwords do not match.');
+      setStatus("error");
+      setMessage("Passwords do not match.");
+      toast.error("Passwords do not match.");
       return;
     }
 
-    setStatus('loading');
-    const toastId = toast.loading('Creating your Supabase account...');
+    setStatus("loading");
+    const toastId = toast.loading("Creating your Supabase account...");
 
     try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName,
           email,
@@ -108,37 +115,39 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        const retryMessage = data.retryAfter
-          ? ` Try again in ${data.retryAfter} seconds.`
-          : '';
-        throw new Error(`${data.error || 'Registration failed.'}${retryMessage}`);
+        throw new Error(data.error || "Registration failed.");
       }
 
-      setStatus('success');
+      setStatus("success");
       const successMessage = data.requiresEmailConfirmation
-        ? 'Account created. Check your email to confirm access before signing in.'
-        : 'Account created and stored in Supabase successfully.';
+        ? "Account created. Check your email to confirm access before signing in."
+        : "Account created and stored in Supabase successfully.";
       setMessage(
         data.requiresEmailConfirmation
-          ? 'Account created. Check your email to confirm access before signing in.'
-          : 'Account created and stored in Supabase successfully.',
+          ? "Account created. Check your email to confirm access before signing in."
+          : "Account created and stored in Supabase successfully.",
       );
       toast.success(successMessage, { id: toastId });
-      if (data.emailDelivery?.status === 'sent') {
-        toast.success('Welcome email sent.');
-      } else if (data.emailDelivery?.status === 'skipped') {
-        toast('Account created. Welcome email skipped because Resend is not configured.');
-      } else if (data.emailDelivery?.status === 'failed') {
-        toast.error(`Account created, but welcome email failed: ${data.emailDelivery.reason}`);
+      if (data.emailDelivery?.status === "sent") {
+        toast.success("Welcome email sent.");
+      } else if (data.emailDelivery?.status === "skipped") {
+        toast(
+          "Account created. Welcome email skipped because Resend is not configured.",
+        );
+      } else if (data.emailDelivery?.status === "failed") {
+        toast.error(
+          `Account created, but welcome email failed: ${data.emailDelivery.reason}`,
+        );
       }
-      setFullName('');
-      setEmail('');
-      setPhone('');
-      setPassword('');
-      setConfirmPassword('');
+      setFullName("");
+      setEmail("");
+      setPhone("");
+      setPassword("");
+      setConfirmPassword("");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed.';
-      setStatus('error');
+      const errorMessage =
+        error instanceof Error ? error.message : "Registration failed.";
+      setStatus("error");
       setMessage(errorMessage);
       toast.error(errorMessage, { id: toastId });
     }
@@ -185,18 +194,24 @@ export default function RegisterPage() {
               Register for verified agricultural escrow access.
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-6 text-[#FDFCFB]/75">
-              Create the identity used by the Investor Hub, Farmer Terminal, Field Agent desk, or Compliance console.
+              Create the identity used by the Investor Hub, Farmer Terminal,
+              Field Agent desk, or Compliance console.
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-3">
               {[
-                ['4', 'role workspaces'],
-                ['KES', 'escrow-first records'],
-                ['100%', 'Supabase-backed auth'],
-                ['Live', 'profile storage API'],
+                ["4", "role workspaces"],
+                ["KES", "escrow-first records"],
+                ["100%", "Supabase-backed auth"],
+                ["Live", "profile storage API"],
               ].map(([value, label]) => (
-                <div key={label} className="border border-[#FDFCFB]/10 bg-[#FDFCFB]/5 p-4">
-                  <p className="font-serif text-2xl font-black text-[#FDFCFB]">{value}</p>
+                <div
+                  key={label}
+                  className="border border-[#FDFCFB]/10 bg-[#FDFCFB]/5 p-4"
+                >
+                  <p className="font-serif text-2xl font-black text-[#FDFCFB]">
+                    {value}
+                  </p>
                   <p className="mt-1 font-mono text-[9px] font-bold uppercase tracking-widest text-[#FDFCFB]/45">
                     {label}
                   </p>
@@ -208,12 +223,17 @@ export default function RegisterPage() {
           <div className="border border-[#1B3022]/10 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2 border-b border-[#1B3022]/10 pb-3">
               <Lock className="h-4 w-4 text-[#D97757]" />
-              <h2 className="font-serif text-base font-black text-[#1B3022]">Supabase flow</h2>
+              <h2 className="font-serif text-base font-black text-[#1B3022]">
+                Supabase flow
+              </h2>
             </div>
             <div className="mt-4 space-y-3 text-xs leading-5 text-[#1B3022]/65">
               <p>1. Auth user is created through Supabase Auth.</p>
               <p>2. Role profile is stored in the `public.users` table.</p>
-              <p>3. The app can route the user into the matching dashboard workspace.</p>
+              <p>
+                3. The app can route the user into the matching dashboard
+                workspace.
+              </p>
             </div>
           </div>
         </div>
@@ -256,16 +276,24 @@ export default function RegisterPage() {
                     onClick={() => setRole(option.id)}
                     className={`min-h-28 border p-4 text-left transition ${
                       isActive
-                        ? 'border-[#1B3022] bg-[#1B3022] text-[#FDFCFB] shadow-md'
-                        : 'border-[#1B3022]/10 bg-[#FDFCFB] text-[#1B3022] hover:border-[#D97757]'
+                        ? "border-[#1B3022] bg-[#1B3022] text-[#FDFCFB] shadow-md"
+                        : "border-[#1B3022]/10 bg-[#FDFCFB] text-[#1B3022] hover:border-[#D97757]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <Icon className={`h-5 w-5 ${isActive ? 'text-[#D97757]' : 'text-[#1B3022]/60'}`} />
-                      {isActive && <CheckCircle className="h-4 w-4 text-emerald-300" />}
+                      <Icon
+                        className={`h-5 w-5 ${isActive ? "text-[#D97757]" : "text-[#1B3022]/60"}`}
+                      />
+                      {isActive && (
+                        <CheckCircle className="h-4 w-4 text-emerald-300" />
+                      )}
                     </div>
-                    <p className="mt-3 font-serif text-sm font-black">{option.label}</p>
-                    <p className={`mt-1 text-[11px] leading-4 ${isActive ? 'text-[#FDFCFB]/70' : 'text-[#1B3022]/55'}`}>
+                    <p className="mt-3 font-serif text-sm font-black">
+                      {option.label}
+                    </p>
+                    <p
+                      className={`mt-1 text-[11px] leading-4 ${isActive ? "text-[#FDFCFB]/70" : "text-[#1B3022]/55"}`}
+                    >
                       {option.description}
                     </p>
                   </button>
@@ -280,7 +308,11 @@ export default function RegisterPage() {
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
                 required
-                placeholder={selectedRole.id === 'farmer' ? 'Ezekiel Kiprotich' : 'Joel Ndoho'}
+                placeholder={
+                  selectedRole.id === "farmer"
+                    ? "Ezekiel Kiprotich"
+                    : "Joel Ndoho"
+                }
                 className="w-full border border-[#1B3022]/15 bg-[#FDFCFB] px-3 py-2.5 text-sm font-semibold text-[#1B3022] outline-none transition placeholder:text-[#1B3022]/30 focus:border-[#D97757]"
               />
             </Field>
@@ -322,7 +354,7 @@ export default function RegisterPage() {
             <Field label="Password">
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
@@ -333,10 +365,14 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowPassword((value) => !value)}
                   className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[#1B3022]/50 transition hover:text-[#D97757]"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </Field>
@@ -344,7 +380,7 @@ export default function RegisterPage() {
             <Field label="Confirm password">
               <div className="relative">
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   required
@@ -355,10 +391,22 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowConfirmPassword((value) => !value)}
                   className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[#1B3022]/50 transition hover:text-[#D97757]"
-                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                  title={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
+                  title={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
                 >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </Field>
@@ -367,9 +415,9 @@ export default function RegisterPage() {
           {message && (
             <div
               className={`mt-5 border px-4 py-3 text-xs font-semibold leading-5 ${
-                status === 'success'
-                  ? 'border-emerald-700/15 bg-emerald-50 text-emerald-900'
-                  : 'border-red-700/15 bg-red-50 text-red-900'
+                status === "success"
+                  ? "border-emerald-700/15 bg-emerald-50 text-emerald-900"
+                  : "border-red-700/15 bg-red-50 text-red-900"
               }`}
               aria-live="polite"
             >
@@ -379,14 +427,16 @@ export default function RegisterPage() {
 
           <div className="mt-6 flex flex-col gap-3 border-t border-[#1B3022]/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-sm text-[11px] leading-5 text-[#1B3022]/55">
-              Your selected role is <strong className="text-[#1B3022]">{selectedRole.label}</strong>. Access can be tightened later with Supabase RLS policies.
+              Your selected role is{" "}
+              <strong className="text-[#1B3022]">{selectedRole.label}</strong>.
+              Access can be tightened later with Supabase RLS policies.
             </p>
             <button
               type="submit"
-              disabled={status === 'loading'}
+              disabled={status === "loading"}
               className="inline-flex h-11 items-center justify-center gap-2 bg-[#1B3022] px-5 font-mono text-[10px] font-bold uppercase tracking-widest text-white shadow-sm transition hover:bg-[#243d2c] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {status === 'loading' ? 'Creating account...' : 'Create account'}
+              {status === "loading" ? "Creating account..." : "Create account"}
               <ArrowRight className="h-4 w-4 text-[#D97757]" />
             </button>
           </div>
@@ -396,7 +446,13 @@ export default function RegisterPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1.5 block font-mono text-[9px] font-bold uppercase tracking-widest text-[#D97757]">
