@@ -50,7 +50,7 @@ export function proxy(request: NextRequest) {
 
   const routeRole = pathname.split('/')[1];
 
-  if (role && routeHome[routeRole] && routeRole !== role) {
+  if (role && roleHome[routeRole] && routeRole !== role) {
     return NextResponse.redirect(new URL(targetPath || '/', request.url));
   }
 
