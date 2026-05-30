@@ -1,5 +1,4 @@
 import { jsx } from 'react/jsx-runtime';
-import { renderToStaticMarkup } from 'react-dom/server';
 
 import { WelcomeEmail } from '@/emails/welcome-email';
 
@@ -43,6 +42,7 @@ export async function sendWelcomeEmail({
   const from = process.env.EMAIL_FROM_EMAIL || 'SHAMBA <no-reply@shamba.example>';
   const replyTo = process.env.EMAIL_REPLY_TO_EMAIL;
   const subject = `Welcome to SHAMBA ${roleLabel}`;
+  const { renderToStaticMarkup } = await import('react-dom/server');
   const html = renderToStaticMarkup(
     jsx(WelcomeEmail, {
       fullName,
